@@ -1,6 +1,6 @@
-# payment-router
+# Payment Router
 
-# Payment Routing Service
+## Payment Routing Service
 
 A Spring Boot microservice that receives a payment request, evaluates routing rules, selects the best payment gateway (Bank A / Bank B etc.), and routes the transaction synchronously. Designed to simulate real-world fintech payment routing and decision engines.
 
@@ -10,9 +10,22 @@ A Spring Boot microservice that receives a payment request, evaluates routing ru
 - REST API based payment initiation
 - Dynamic routing using priority rules
 - Strategy pattern based gateway routing
-- Database-backed transactions & routing rules
+- Database-backed transactions & routing rules (to be enabled next)
 - Fallback / future retry capable design
 - Clean layered architecture
+
+---
+
+## ✅ Prerequisites
+- Java 17+
+- Maven
+- (Later) PostgreSQL
+
+Verify:
+```
+java -version
+mvn -v
+```
 
 ---
 
@@ -26,86 +39,71 @@ payment-routing-service
 │  ├─ main
 │  │   ├─ java
 │  │   │   └─ com.raghav.paymentrouting
-│  │   │        ├─ PaymentRoutingServiceApplication.java
-│  │   │
+│  │   │        ├─ DemoApplication.java
 │  │   │        ├─ controller
 │  │   │        │     └─ PaymentController.java
-│  │   │
 │  │   │        ├─ service
 │  │   │        │     ├─ PaymentService.java
 │  │   │        │     └─ RoutingEngine.java
-│  │   │
 │  │   │        ├─ strategy
 │  │   │        │     ├─ RoutingStrategy.java
 │  │   │        │     ├─ BankARouter.java
 │  │   │        │     └─ BankBRouter.java
-│  │   │
-│  │   │        ├─ model        // DTOs
+│  │   │        ├─ model
 │  │   │        │     ├─ PaymentRequest.java
 │  │   │        │     ├─ PaymentResponse.java
 │  │   │        │     └─ TransactionStatus.java
-│  │   │
-│  │   │        ├─ entity       // DB entities
+│  │   │        ├─ entity
 │  │   │        │     ├─ TransactionEntity.java
 │  │   │        │     └─ RoutingRuleEntity.java
-│  │   │
 │  │   │        ├─ repository
 │  │   │        │     ├─ TransactionRepository.java
 │  │   │        │     └─ RoutingRuleRepository.java
-│  │   │
 │  │   │        ├─ exception
 │  │   │        │     ├─ PaymentException.java
 │  │   │        │     └─ GlobalExceptionHandler.java
-│  │   │
 │  │   │        └─ config
 │  │   │              └─ WebConfig.java
-│  │   │
 │  │   └─ resources
 │  │        ├─ application.yaml
 │  │        └─ data.sql
-│  │
 │  └─ test
-│       └─ PaymentRoutingServiceApplicationTests.java
+│       └─ DemoApplicationTests.java
 ```
 
 ---
 
-## 🛢️ Database Tables
+## ▶️ Run Locally
 
-### `transactions`
-Stores each transaction + routing decision.
+### 1️⃣ Build the project
+```
+mvn clean package
+```
 
-| field | type |
-|------|------|
-| id | uuid |
-| reference_id | varchar |
-| amount | decimal |
-| currency | varchar |
-| selected_gateway | varchar |
-| status | varchar |
-| failure_reason | varchar |
-| created_on | timestamp |
-
-### `routing_rules`
-Stores routing logic dynamically.
-
-| field | type |
-|------|------|
-| id | int |
-| priority | int |
-| condition_expression | text |
-| gateway | varchar |
-| active | boolean |
+If tests block build:
+```
+mvn clean package -DskipTests
+```
 
 ---
 
-## ▶️ Run Locally
-1️⃣ Configure PostgreSQL in `application.yaml`  
-2️⃣ Run Spring Boot application  
-3️⃣ Test API:
+### 2️⃣ Start the Application
+```
+mvn spring-boot:run
+```
 
+Expected:
+- App starts on port **8080**
+- No DB required yet
+
+---
+
+## ✅ Test API
+
+### Endpoint
 POST `/api/payments`
 
+### Sample Request
 ```
 {
   "referenceId": "TXN12345",
@@ -115,7 +113,32 @@ POST `/api/payments`
 }
 ```
 
+### Sample Response
+```
+{
+  "status": "SUCCESS",
+  "gateway": "BANK_A",
+  "message": "Payment processed successfully"
+}
+```
+
+### Curl
+```
+curl -X POST http://localhost:8080/api/payments \
+-H "Content-Type: application/json" \
+-d '{"referenceId":"TXN12345","amount":1200,"currency":"INR","customerId":"CUST1"}'
+```
+
+---
+
+## 🛢️ Database (Coming Next)
+- PostgreSQL configuration
+- Transactions table
+- Routing rules table
+- Persistence + retrieval
+- Real routing engine enablement
+
 ---
 
 ## ✅ Status
-Project under development. Core structure ready.
+Application setup completed, API working. Next milestone → enable PostgreSQL + JPA routing storage.
