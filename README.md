@@ -2,30 +2,49 @@
 
 ## Payment Routing Service
 
-A Spring Boot microservice that receives a payment request, evaluates routing rules, selects the best payment gateway (Bank A / Bank B etc.), and routes the transaction synchronously. Designed to simulate real-world fintech payment routing and decision engines.
+A Spring Boot microservice that receives a payment request, evaluates routing logic, selects the best payment gateway (Bank A / Bank B), and processes the transaction synchronously.  
+Designed to closely simulate a real-world fintech **payment routing and transaction persistence** service.
 
 ---
 
 ## 🔥 Features
-- REST API based payment initiation
-- Dynamic routing using priority rules
+- REST-based synchronous payment processing
 - Strategy pattern based gateway routing
-- Database-backed transactions & routing rules (to be enabled next)
-- Fallback / future retry capable design
-- Clean layered architecture
+- PostgreSQL-backed transaction persistence
+- Spring Data JPA + Hibernate integration
+- Fetch payment status by referenceId
+- Clean layered architecture (Controller → Service → Repository)
 
 ---
 
 ## ✅ Prerequisites
+
 - Java 17+
 - Maven
-- (Later) PostgreSQL
+- PostgreSQL (local)
 
 Verify:
 ```
 java -version
 mvn -v
+psql --version
 ```
+
+---
+
+## 🛢️ Database Setup (Local)
+
+Create DB:
+```
+createdb payment_router_db
+```
+
+Verify:
+```
+psql payment_router_db
+```
+
+Tables are auto-created by Hibernate on app startup.
 
 ---
 
@@ -65,80 +84,126 @@ payment-routing-service
 │  │   │        └─ config
 │  │   │              └─ WebConfig.java
 │  │   └─ resources
-│  │        ├─ application.yaml
-│  │        └─ data.sql
+│  │        └─ application.yaml
 │  └─ test
 │       └─ DemoApplicationTests.java
 ```
 
 ---
 
-## ▶️ Run Locally
+## ▶️ Build & Run
 
-### 1️⃣ Build the project
+### Build
 ```
 mvn clean package
 ```
 
-If tests block build:
+Skip tests if required:
 ```
 mvn clean package -DskipTests
 ```
 
----
-
-### 2️⃣ Start the Application
+### Run
 ```
 mvn spring-boot:run
 ```
 
 Expected:
-- App starts on port **8080**
-- No DB required yet
+- App starts on **http://localhost:8080**
+- PostgreSQL connection established
+- `transactions` table auto-created
 
 ---
 
-## ✅ Test API
+## ✅ API Usage
 
-### Endpoint
-POST `/api/payments`
+### 1️⃣ Create Payment
 
-### Sample Request
+**POST** `/api/payments`
+
 ```
-{
-  "referenceId": "TXN12345",
-  "amount": 1200,
-  "currency": "INR",
-  "customerId": "CUST1"
-}
+curl -X POST http://localhost:8080/api/payments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "referenceId": "TXN1001",
+    "amount": 1500,
+    "currency": "INR",
+    "customerId": "CUST01"
+  }'
 ```
 
-### Sample Response
+Response:
 ```
 {
   "status": "SUCCESS",
   "gateway": "BANK_A",
-  "message": "Payment processed successfully"
+  "message": "Payment processed and saved successfully"
 }
 ```
 
-### Curl
+---
+
+### 2️⃣ Get Payment Status
+
+**GET** `/api/payments/{referenceId}`
+
 ```
-curl -X POST http://localhost:8080/api/payments \
--H "Content-Type: application/json" \
--d '{"referenceId":"TXN12345","amount":1200,"currency":"INR","customerId":"CUST1"}'
+curl -X GET http://localhost:8080/api/payments/TXN1001
+```
+
+Response:
+```
+{
+  "status": "SUCCESS",
+  "gateway": "BANK_A",
+  "message": "Payment status fetched successfully"
+}
 ```
 
 ---
 
-## 🛢️ Database (Coming Next)
-- PostgreSQL configuration
-- Transactions table
-- Routing rules table
-- Persistence + retrieval
-- Real routing engine enablement
+### 3️⃣ Not Found Case
+
+```
+curl -X GET http://localhost:8080/api/payments/UNKNOWN_REF
+```
+
+Response:
+```
+{
+  "status": "NOT_FOUND",
+  "gateway": null,
+  "message": "No transaction found for given referenceId"
+}
+```
 
 ---
 
-## ✅ Status
-Application setup completed, API working. Next milestone → enable PostgreSQL + JPA routing storage.
+## 🔎 Verify via DB
+
+```
+psql payment_router_db
+```
+
+```
+SELECT reference_id, status, selected_gateway FROM transactions;
+```
+
+---
+
+## 🚀 Current Status
+
+- End-to-end payment routing working
+- Transactions persisted in PostgreSQL
+- Read-after-write consistency verified
+- Stable base ready for enhancements
+
+---
+
+## 🧭 Next Enhancements (Planned)
+
+- Routing rules table usage
+- Idempotency (duplicate referenceId handling)
+- Validation & error codes
+- Swagger / OpenAPI
+- Retry & fallback logic
